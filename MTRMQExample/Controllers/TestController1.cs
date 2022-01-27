@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 
 namespace MTRMQExample.Controllers
 {
-    public class TestController1
+    public class Test1Controller
     {
-        public TestController1(ILogger<TestController> logger)
+        public Test1Controller(ILogger<TestController> logger)
         {
             this.Logger = logger;
         }

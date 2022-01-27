@@ -15,11 +15,11 @@ namespace MTRMQExample.Controllers
         }
 
         public ILogger<TestController> Logger { get; }
-
-        //[SubscribeOn("outerStatuses", ExchangeType.Topic, "101")]
-        //[SubscribeTopicOn("outerStatuses", "101")]
-        //[SubscribeTopicOn("outerStatuses", "102")]
-        //[SubscribeOn("outerStatuses", ExchangeType.Topic, "#")]
+        
+        [SubscribeOn("outerStatuses", ExchangeType.Topic, "101")]
+        [SubscribeTopicOn("outerStatuses", "101")]
+        [SubscribeTopicOn("outerStatuses", "102")]
+        [SubscribeOn("outerStatuses", ExchangeType.Topic, "#")]
         public Task<List<string>> Consume1(IEnumerable<JsonText> events)
         {
             //return $"{nameof(Consume1)}_result";
@@ -30,31 +30,43 @@ namespace MTRMQExample.Controllers
             //return new object();
         }
 
-        [SubscribeOn("outerStatusesV2", ExchangeType.Direct, "101")]
-        [SubscribeDirectOn("outerStatusesV2", "102")]
-        [SubscribeOn("outerStatusesV2", ExchangeType.Direct, "#")]
+        [SubscribeOn("outerStatusesV3", ExchangeType.Direct, "101")]
+        [SubscribeDirectOn("outerStatusesV3", "102")]
+        [SubscribeOn("outerStatusesV3", ExchangeType.Direct, "#")]
         public Task<List<string>> Consume2(IEnumerable<JsonText> events)
         {
             throw new System.Exception("Errr!!!");
-            return Task.FromResult(new List<string>() { $"{nameof(Consume2)}_result" });
+            //return Task.FromResult(new List<string>() { $"{nameof(Consume2)}_result" });
         }
 
-        //[SubscribeTopicOn("outerStatusesV2")]
+        [SubscribeTopicOn("outerStatusesV2")]
         public Task<List<string>> ConsumeV2RouteAll(IEnumerable<JsonText> events)
         {
             return Task.FromResult(new List<string>() { $"{nameof(ConsumeV2RouteAll)}_result" });
         }
 
-        //[SubscribeTopicOn("outerStatusesV2", "101")]
+        [SubscribeTopicOn("outerStatusesV2", "101")]
         public Task<List<string>> ConsumeV2Route101(IEnumerable<JsonText> events)
         {
             return Task.FromResult(new List<string>() { $"{nameof(ConsumeV2Route101)}_result" });
         }
 
-        //[SubscribeTopicOn("outerStatusesV2", "102")]
+        [SubscribeTopicOn("outerStatusesV2", "102")]
         public Task<List<string>> ConsumeV2Route102(IEnumerable<JsonText> events)
         {
             return Task.FromResult(new List<string>() { $"{nameof(ConsumeV2Route102)}_result" });
+        }
+
+        [RunJob("0/1 * * * * ?")]
+        public async Task<string> Job1()
+        {
+            return await Task.FromResult($"{nameof(Job1)}_result");
+        }
+
+        [RunJob("0/5 * * * * ?")]
+        public async Task<string> Job2()
+        {
+            return await Task.FromResult($"{nameof(Job2)}_result");
         }
     }
 }

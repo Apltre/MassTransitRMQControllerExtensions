@@ -35,8 +35,12 @@ namespace MassTransitRMQExtensions.Models
             return method.ReturnType == typeof(Task);
         }
 
-        protected static object InvokeHandler(ControllerHandlerInfo handlerInfo, object controller,  object @event)
+        protected static object InvokeHandler<M>(ControllerHandlerInfo handlerInfo, object controller, M @event)
         {
+            if (typeof(M) == typeof(JobMessage))
+            {
+                return handlerInfo!.Method!.Invoke(controller, null);
+            }
             return handlerInfo!.Method!.Invoke(controller, new object[] { @event });
         }
 

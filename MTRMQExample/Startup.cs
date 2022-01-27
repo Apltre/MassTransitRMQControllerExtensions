@@ -29,7 +29,7 @@ namespace MTRMQExample
                 Host = new Uri($"amqp://{rabbitConfig["HostName"]}:{rabbitConfig["Port"]}")
             };
 
-            services.ConfigureMassTransitControllers(conf, (controllerName) => controllerName.Contains("Test"), (queueName) => $"{queueName}_v1");
+            services.ConfigureMassTransitControllers(conf, controllerNameFilter: (controllerName) => controllerName.Contains("Test"), queueNamingChanger: (queueName) => $"{queueName}_v1");
 
         }
 
