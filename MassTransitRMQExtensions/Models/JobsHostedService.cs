@@ -46,10 +46,10 @@ namespace MassTransitRMQExtensions.Models
                     foreach (var attribute in method.GetCustomAttributes<RunJob>().Distinct())
                     {
                         scheduler.JobFactory = new JobPublisherFactory(this.ServiceProvider);
-                        var trigger = TriggerBuilder.Create().StartNow().WithCronSchedule(attribute.CroneSchedule).Build();
+                        var trigger = TriggerBuilder.Create().StartNow().WithCronSchedule(attribute.CronSchedule).Build();
                         var job = JobBuilder.Create(typeof(JobPublisher)).Build();
                         job.JobDataMap.Put("queue", queueName);
-                        job.JobDataMap.Put("cron", attribute.CroneSchedule);
+                        job.JobDataMap.Put("cron", attribute.CronSchedule);
                         await scheduler.ScheduleJob(job, trigger, cancellationToken);
                     }
                 }

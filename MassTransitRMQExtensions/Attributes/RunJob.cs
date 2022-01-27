@@ -5,20 +5,20 @@ namespace MassTransitRMQExtensions.Attributes
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class RunJob : Attribute, IEquatable<RunJob>
     {
-        public RunJob(string croneSchedule)
+        public RunJob(string cronSchedule)
         {
-            this.CroneSchedule = croneSchedule ?? "0/1 * * * * ?"; //default every second
+            this.CronSchedule = cronSchedule ?? "0/1 * * * * ?"; //default every second
         }
-        public string CroneSchedule { get; }
+        public string CronSchedule { get; }
         public bool Equals(RunJob other)
         {
 
-            return this.CroneSchedule == other.CroneSchedule;
+            return this.CronSchedule == other.CronSchedule;
              
         }
         public override int GetHashCode()
         {
-            return this.CroneSchedule.GetHashCode();
+            return this.CronSchedule.GetHashCode();
         }
     }
 }

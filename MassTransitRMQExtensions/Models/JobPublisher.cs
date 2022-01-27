@@ -28,8 +28,8 @@ namespace MassTransitRMQExtensions.Models
             var queueUri = new Uri($"exchange:{queue}");
             var cron = (string)context.JobDetail.JobDataMap["cron"];
 
-            var croneExpr = new CronExpression(cron);
-            var ttl = (croneExpr.GetTimeAfter(DateTimeOffset.UtcNow).Value.ToLocalTime() - DateTime.Now) / 4;
+            var cronExpr = new CronExpression(cron);
+            var ttl = (cronExpr.GetTimeAfter(DateTimeOffset.UtcNow).Value.ToLocalTime() - DateTime.Now) / 4;
 
             using var scope = this.ServiceProvider.CreateScope();
             var endpointProvider = scope.ServiceProvider.GetRequiredService<ISendEndpointProvider>();
