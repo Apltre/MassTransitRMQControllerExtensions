@@ -8,22 +8,30 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Generic;
 using System.Linq;
 using MassTransitRMQExtensions.Models;
-using MassTransitRMQExtensions.Attributes;
 using MassTransitRMQExtensions.Helpers;
+using MassTransitRMQExtensions.Attributes.JobAttributes;
+using MassTransitRMQExtensions.Attributes.ConsumerAttributes;
+using System.Threading.Tasks;
+using MassTransitRMQExtensions.Attributes.PublishAttributes;
+using MassTransitRMQExtensions.Enums;
 
 namespace MassTransitRMQExtensions
 {
     public static class MassTransitMQConsumersConfigurator
     {
-        private static void ConfigureGenericEventConsumer<T>(IRabbitMqReceiveEndpointConfigurator receiveEndpointConfigurator, IBusRegistrationContext context, RabbitEndpoint endpoint) where T : class
+        internal static void ConfigureGenericEventConsumer<T>(IRabbitMqReceiveEndpointConfigurator receiveEndpointConfigurator, IBusRegistrationContext context, RabbitEndpoint endpoint) where T : class
         {
             receiveEndpointConfigurator.Consumer(() => new GenericEventConsumer<T>(context, endpoint));
         }
-        private static void ConfigureEventConsumer(this IRabbitMqReceiveEndpointConfigurator receiveEndpointConfigurator, IBusRegistrationContext context, RabbitEndpoint endpoint)
+        internal static void InvokeLocalVoidGenericMethodByType(Type genericType, string methodName, object[] parameters)
         {
             var methodType = typeof(MassTransitMQConsumersConfigurator)
-                .GetMethod(nameof(MassTransitMQConsumersConfigurator.ConfigureGenericEventConsumer), BindingFlags.NonPublic | BindingFlags.Static);
-
+             .GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static);
+            var constructedMethod = methodType!.MakeGenericMethod(genericType);
+            constructedMethod.Invoke(null, parameters);
+        }
+        internal static void ConfigureEventConsumer(this IRabbitMqReceiveEndpointConfigurator receiveEndpointConfigurator, IBusRegistrationContext context, RabbitEndpoint endpoint)
+        {
             var consumerMessageType = endpoint.ConsumerMessageType;
 
             if (typeof(IEnumerable).IsAssignableFrom(endpoint.ConsumerMessageType) && !consumerMessageType.IsArray)
@@ -31,11 +39,9 @@ namespace MassTransitRMQExtensions
                 consumerMessageType = consumerMessageType.GenericTypeArguments.Single().MakeArrayType();
             }
 
-            var constructedMethod = methodType!.MakeGenericMethod(consumerMessageType);
-            constructedMethod.Invoke(null, new object[] { receiveEndpointConfigurator, context, endpoint });
+            InvokeLocalVoidGenericMethodByType(consumerMessageType, nameof(MassTransitMQConsumersConfigurator.ConfigureGenericEventConsumer), new object[] { receiveEndpointConfigurator, context, endpoint });
         }
-      
-        private static void ConfigureRabbitReceiveEndpoint(this IRabbitMqBusFactoryConfigurator configurator, IBusRegistrationContext context, RabbitEndpoint endpoint)
+        internal static void ConfigureRabbitReceiveEndpoint(this IRabbitMqBusFactoryConfigurator configurator, IBusRegistrationContext context, RabbitEndpoint endpoint)
         {
             configurator.ReceiveEndpoint(endpoint.QueueName, configurator =>
             {
@@ -51,14 +57,32 @@ namespace MassTransitRMQExtensions
                 configurator.ConfigureEventConsumer(context, endpoint);
             });
         }
-        private static void configureMassTransitScheduledJobsEmitters(this IServiceCollection services, IEnumerable<Type> controllers, Func<string, string> queueNamingChanger)
+        internal static void ConfigureMassTransitScheduledJobsEmitters(this IServiceCollection services, IEnumerable<Type> controllers, Func<string, string> queueNamingChanger)
         {
             services.AddHostedService(services =>
             {
                 return new JobsHostedService(services, controllers, queueNamingChanger);
             });
         }
-        public static void ConfigureConsumers(this IServiceCollection services, RabbitMqConfig config, IEnumerable<RabbitEndpoint> endpoints)
+        internal static void RegisterPublisherMessage<T>(IRabbitMqBusFactoryConfigurator configurator, string exchange) where T : class
+        {
+            configurator.Message<T>(c => c.SetEntityName(exchange));
+        }
+        internal static void RegisterPublisherPublish<T>(IRabbitMqBusFactoryConfigurator configurator, ExchangeType exchangeType, bool resolveTopology = true) where T : class
+        {
+            configurator.Publish<T>(c =>
+                {
+                    c.ExchangeType = exchangeType.ToString().ToLower();
+                    c.Exclude = !resolveTopology;
+                });
+        }
+        internal static void RegisterPublisher(this IRabbitMqBusFactoryConfigurator configurator, RabbitMessagePublisher publisher)
+        {
+            InvokeLocalVoidGenericMethodByType(publisher.MesageType, nameof(RegisterPublisherMessage), new object[] { configurator, publisher.MessageExchange });
+            InvokeLocalVoidGenericMethodByType(publisher.MesageType, nameof(RegisterPublisherPublish), new object[] { configurator, publisher.MessageExchangeType, publisher.ResolveTopology });
+        }
+        public static void ConfigureMassTransit(this IServiceCollection services, RabbitMqConfig config,
+            IEnumerable<RabbitEndpoint> endpoints, IEnumerable<RabbitMessagePublisher> messagePublishers)
         {
             if (!(endpoints is null) && endpoints.Any())
             {
@@ -80,6 +104,12 @@ namespace MassTransitRMQExtensions
                                                                   TimeSpan.FromMinutes(2),
                                                                   TimeSpan.FromMinutes(20),
                                                                   TimeSpan.FromMinutes(1))); //~ 6 hours
+
+                        foreach (var publish in messagePublishers)
+                        {
+                            cfg.RegisterPublisher(publish);
+                        }
+
                         foreach (var endpoint in endpoints)
                         {
                             cfg.ConfigureRabbitReceiveEndpoint(context, endpoint);
@@ -91,7 +121,7 @@ namespace MassTransitRMQExtensions
                 services.AddMassTransitHostedService();
             }
         }
-        private static void registerTypesInDI(this IServiceCollection services, IEnumerable<Type> unregisteredTypes)
+        internal static void RegisterTypesInDI(this IServiceCollection services, IEnumerable<Type> unregisteredTypes)
         {
             foreach (var type in unregisteredTypes)
             {
@@ -101,8 +131,7 @@ namespace MassTransitRMQExtensions
                 }
             }
         }
-  
-        private static bool validateControllerTypeName(this Type controllerType, Func<string, bool> controllerNameFilter = null)
+        internal static bool ValidateControllerTypeName(this Type controllerType, Func<string, bool> controllerNameFilter = null)
         {
             var controllerName = controllerType.Name;
 
@@ -115,7 +144,7 @@ namespace MassTransitRMQExtensions
                 && controllerNameFilter(controllerName)
                 && !controllerType.IsGenericType;
         }
-        private static IEnumerable<RabbitEndpoint> getEventConsumersConfigurations(IEnumerable<Type> controllers, Func<string, string> queueNamingChanger)
+        internal static IEnumerable<RabbitEndpoint> GetEventConsumersConfigurations(IEnumerable<Type> controllers, Func<string, string> queueNamingChanger)
         {
             var methodsToBind = controllers.SelectMany(t => t.GetMethods()).Where(m => m.CheckMethodHasAttribute<SubscribeOn>()).ToList();
             foreach (var method in methodsToBind)
@@ -148,7 +177,7 @@ namespace MassTransitRMQExtensions
                 }
             }
         }
-        private static IEnumerable<RabbitEndpoint> getJobConfigurations(IEnumerable<Type> controllers, Func<string, string> queueNamingChanger)
+        internal static IEnumerable<RabbitEndpoint> GetJobConfigurations(IEnumerable<Type> controllers, Func<string, string> queueNamingChanger)
         {
             var methodsToBind = controllers.SelectMany(t => t.GetMethods()).Where(m => m.CheckMethodHasAttribute<RunJob>()).ToList();
             foreach (var method in methodsToBind)
@@ -165,8 +194,22 @@ namespace MassTransitRMQExtensions
                 };
             }
         }
+        internal static IEnumerable<RabbitMessagePublisher> GetRabbitPublishers(IEnumerable<Type> publishers)
+        {
+            foreach (var publisher in publishers)
+            {
+                var attribute = publisher.GetCustomAttributes<PublishMessage>().Single();
+                yield return new RabbitMessagePublisher()
+                {
+                    MesageType = publisher,
+                    MessageExchangeType = attribute.ExchangeType,
+                    ResolveTopology = attribute.ResolveTopology,
+                    MessageExchange = attribute.ExchangeName
+                };
+            }
+        }
         public static void ConfigureMassTransitControllers(this IServiceCollection services, RabbitMqConfig config, IEnumerable<Type> controllers,
-            bool configureScheduledJobEmitters = true, Func<string, string> queueNamingChanger = null)
+            IEnumerable<Type> publisherMessageTypes, bool configureScheduledJobEmitters = true, Func<string, string> queueNamingChanger = null)
         {
             if (queueNamingChanger is null)
             {
@@ -174,32 +217,45 @@ namespace MassTransitRMQExtensions
             }
             var endpoints = new List<RabbitEndpoint>();
 
-            var consumerConfigurations = getEventConsumersConfigurations(controllers, queueNamingChanger);
-            services.registerTypesInDI(consumerConfigurations.Select(c => c.EventHandler).Select(m => m.ControllerType).Distinct());
+            var consumerConfigurations = GetEventConsumersConfigurations(controllers, queueNamingChanger);
+            services.RegisterTypesInDI(consumerConfigurations.Select(c => c.EventHandler).Select(m => m.ControllerType).Distinct());
             endpoints.AddRange(consumerConfigurations);
 
-            var jobConfigurations = getJobConfigurations(controllers, queueNamingChanger);
-            services.registerTypesInDI(jobConfigurations.Select(c => c.EventHandler).Select(m => m.ControllerType).Distinct());
+            var jobConfigurations = GetJobConfigurations(controllers, queueNamingChanger);
+            services.RegisterTypesInDI(jobConfigurations.Select(c => c.EventHandler).Select(m => m.ControllerType).Distinct());
             endpoints.AddRange(jobConfigurations);
 
-            services.ConfigureConsumers(config, endpoints);
+            var rabbitPublishers = GetRabbitPublishers(publisherMessageTypes);
+
+            services.ConfigureMassTransit(config, endpoints, rabbitPublishers);
 
             if (configureScheduledJobEmitters)
             {
-                services.configureMassTransitScheduledJobsEmitters(controllers, queueNamingChanger);
+                services.ConfigureMassTransitScheduledJobsEmitters(controllers, queueNamingChanger);
             }
         }
         public static void ConfigureMassTransitControllers(this IServiceCollection services, RabbitMqConfig config, IEnumerable<Assembly> assemblies,
             bool configureScheduledJobEmitters = true, Func<string, bool> controllerNameFilter = null, Func<string, string> queueNamingChanger = null)
         {
-            var controllers = assemblies.SelectMany(a => a.GetExportedTypes().Where(t => t.validateControllerTypeName(controllerNameFilter)));
-            services.ConfigureMassTransitControllers(config, controllers, configureScheduledJobEmitters, queueNamingChanger);
+            var controllers = assemblies.SelectMany(a => a.GetExportedTypes().Where(t => t.ValidateControllerTypeName(controllerNameFilter)));
+            var publisherTypes = assemblies.SelectMany(a => a.GetExportedTypes()).Where(t => t.GetCustomAttributes(typeof(PublishMessage)).Any());
+            services.ConfigureMassTransitControllers(config, controllers, publisherTypes, configureScheduledJobEmitters, queueNamingChanger);
         }
-        public static void ConfigureMassTransitControllers(this IServiceCollection services, RabbitMqConfig config, bool configureJobSchedulers = true,
+        public static void ConfigureMassTransitControllers(this IServiceCollection services, RabbitMqConfig config, bool configureJobEmitters = true,
             Func<string, bool> controllerNameFilter = null, Func<string, string> queueNamingChanger = null)
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            services.ConfigureMassTransitControllers(config, assemblies, configureJobSchedulers, controllerNameFilter, queueNamingChanger);
+            services.ConfigureMassTransitControllers(config, assemblies, configureJobEmitters, controllerNameFilter, queueNamingChanger);
+        }
+        public static async Task PublishMessage<T>(this IPublishEndpoint publishEndpoint, T message, string routingKey = null) where T : class
+        {
+            var messageType = typeof(T);
+            var messageAttributes = messageType.GetCustomAttributes().Select(a => a.GetType());
+            if (!messageAttributes.Contains(typeof(PublishMessage)))
+            {
+                throw new Exception($"Publising message of type {messageType.Name} doesn't have routing attribute.");
+            }
+            await publishEndpoint.Publish(message, context => context.SetRoutingKey(routingKey) );
         }
     }
 }

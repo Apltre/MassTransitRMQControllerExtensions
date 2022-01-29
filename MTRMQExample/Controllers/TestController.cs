@@ -1,5 +1,9 @@
-﻿using MassTransitRMQExtensions.Attributes;
+﻿using MassTransit;
+using MassTransitRMQExtensions;
+using MassTransitRMQExtensions.Attributes.ConsumerAttributes;
+using MassTransitRMQExtensions.Attributes.JobAttributes;
 using MassTransitRMQExtensions.Enums;
+using MassTransitRMQExtensions.Models;
 using Microsoft.Extensions.Logging;
 using MTRMQExample.Model;
 using System.Collections.Generic;
@@ -9,12 +13,16 @@ namespace MTRMQExample.Controllers
 {
     public class TestController
     {
-        public TestController(ILogger<TestController> logger)
+        public TestController(ILogger<TestController> logger, IPublishEndpoint publishEndpoint)
         {
             this.Logger = logger;
+            //sendEndpoint is not expected to work properly woth exchange types other than fanout
+            this.PublishEndpoint = publishEndpoint;
         }
 
         public ILogger<TestController> Logger { get; }
+        public IPublishEndpoint PublishEndpoint { get; }
+
         
         [SubscribeOn("outerStatuses", ExchangeType.Topic, "101")]
         [SubscribeTopicOn("outerStatuses", "101")]
@@ -22,6 +30,7 @@ namespace MTRMQExample.Controllers
         [SubscribeOn("outerStatuses", ExchangeType.Topic, "#")]
         public Task<List<string>> Consume1(IEnumerable<JsonText> events)
         {
+         
             //return $"{nameof(Consume1)}_result";
             return Task.FromResult(new List<string>() { $"{nameof(Consume1)}_result" });
             //return Task.FromResult(new List<string>() { $"{nameof(Consume1)}_result" });
@@ -29,7 +38,7 @@ namespace MTRMQExample.Controllers
             //return null;
             //return new object();
         }
-
+        
         [SubscribeOn("outerStatusesV3", ExchangeType.Direct, "101")]
         [SubscribeDirectOn("outerStatusesV3", "102")]
         [SubscribeOn("outerStatusesV3", ExchangeType.Direct, "#")]
@@ -50,11 +59,16 @@ namespace MTRMQExample.Controllers
         {
             return Task.FromResult(new List<string>() { $"{nameof(ConsumeV2Route101)}_result" });
         }
-
         [SubscribeTopicOn("outerStatusesV2", "102")]
-        public Task<List<string>> ConsumeV2Route102(IEnumerable<JsonText> events)
+        public async Task<List<string>> ConsumeV2Route102(IEnumerable<JsonText> events)
         {
-            return Task.FromResult(new List<string>() { $"{nameof(ConsumeV2Route102)}_result" });
+            //recommended extension for exchange publish
+            await this.PublishEndpoint.PublishMessage(new Message
+            {
+                Id = "asdfdf",
+                Text = "text"
+            }, "102");
+            return new List<string>() { $"{nameof(ConsumeV2Route102)}_result" };
         }
 
         [RunJob("0/1 * * * * ?")]
@@ -62,7 +76,7 @@ namespace MTRMQExample.Controllers
         {
             return await Task.FromResult($"{nameof(Job1)}_result");
         }
-
+        
         [RunJob("0/5 * * * * ?")]
         public async Task<string> Job2()
         {

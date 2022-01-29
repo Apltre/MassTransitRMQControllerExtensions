@@ -6,10 +6,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using MassTransitRMQExtensions.Attributes;
 using System.Reflection;
 using System.Linq;
 using MassTransitRMQExtensions.Helpers;
+using MassTransitRMQExtensions.Attributes.JobAttributes;
 
 namespace MassTransitRMQExtensions.Models
 {
@@ -25,11 +25,9 @@ namespace MassTransitRMQExtensions.Models
             }
             this.QueueNamingChanger = queueNamingChanger ;
         }
-
         public IServiceProvider ServiceProvider { get; }
         public IEnumerable<Type> Controllers { get; }
         public Func<string, string> QueueNamingChanger { get; }
-
         public async Task StartAsync(CancellationToken cancellationToken)
         {   
             var methodsToBind = this.Controllers.SelectMany(t => t.GetMethods()).Where(m => m.CheckMethodHasAttribute<RunJob>()).ToList();
@@ -55,7 +53,6 @@ namespace MassTransitRMQExtensions.Models
                 }
             }
         }
-
         public async Task StopAsync(CancellationToken cancellationToken)
         {
             await Task.CompletedTask;

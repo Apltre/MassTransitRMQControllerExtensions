@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MassTransitRMQExtensions.Attributes
+namespace MassTransitRMQExtensions.Attributes.JobAttributes
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class RunJob : Attribute, IEquatable<RunJob>
@@ -14,7 +14,7 @@ namespace MassTransitRMQExtensions.Attributes
         {
 
             return this.CronSchedule == other.CronSchedule;
-             
+
         }
         public override int GetHashCode()
         {
