@@ -1,6 +1,6 @@
 ﻿using MassTransitRMQExtensions.Enums;
 
-namespace MassTransitRMQExtensions.Attributes
+namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
 {
     public class SubscribeTopicOn : SubscribeOn
     {

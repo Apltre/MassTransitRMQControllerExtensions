@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MassTransitRMQExtensions.Attributes
+namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class SubscribeOn : Attribute, IEquatable<SubscribeOn>
@@ -18,7 +18,7 @@ namespace MassTransitRMQExtensions.Attributes
         public string Exchange { get; }
         public ExchangeType TopologyType { get; }
         public string Route { get; }
-            
+
         private IEnumerable<ExchangeType> exchangeTypesWithoutRoutes = new List<ExchangeType> { ExchangeType.Fanout };
 
         private bool routeEquals(SubscribeOn other)
@@ -52,7 +52,7 @@ namespace MassTransitRMQExtensions.Attributes
         {
             int hashExchange = (this.Exchange ?? "").GetHashCode();
             int hashTopologyType = this.TopologyType.GetHashCode();
-            int hashRoute = this.getRouteHash(this.Route ?? "");
+            int hashRoute = getRouteHash(this.Route ?? "");
             return hashExchange ^ hashTopologyType ^ hashRoute;
         }
     }
