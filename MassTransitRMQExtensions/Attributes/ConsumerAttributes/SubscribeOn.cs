@@ -23,7 +23,7 @@ namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
 
         private bool routeEquals(SubscribeOn other)
         {
-            if (this.exchangeTypesWithoutRoutes.Contains(TopologyType))
+            if (this.exchangeTypesWithoutRoutes.Contains(this.TopologyType))
             {
                 return true;
             }
@@ -40,7 +40,7 @@ namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
 
         private int getRouteHash(string route)
         {
-            if (this.exchangeTypesWithoutRoutes.Contains(TopologyType) || this.Route is null)
+            if (this.exchangeTypesWithoutRoutes.Contains(this.TopologyType) || this.Route is null)
             {
                 return 0.GetHashCode();
             }
@@ -50,9 +50,9 @@ namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
 
         public override int GetHashCode()
         {
-            int hashExchange = (Exchange ?? "").GetHashCode();
-            int hashTopologyType = TopologyType.GetHashCode();
-            int hashRoute = getRouteHash(Route ?? "");
+            int hashExchange = (this.Exchange ?? "").GetHashCode();
+            int hashTopologyType = this.TopologyType.GetHashCode();
+            int hashRoute = getRouteHash(this.Route ?? "");
             return hashExchange ^ hashTopologyType ^ hashRoute;
         }
     }
