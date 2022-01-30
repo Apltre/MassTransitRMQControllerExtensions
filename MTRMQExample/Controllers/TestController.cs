@@ -16,7 +16,7 @@ namespace MTRMQExample.Controllers
         public TestController(ILogger<TestController> logger, IPublishEndpoint publishEndpoint)
         {
             this.Logger = logger;
-            //sendEndpoint is not expected to work properly woth exchange types other than fanout
+            //sendEndpoint is not expected to work properly with exchange types other than fanout
             this.PublishEndpoint = publishEndpoint;
         }
 
