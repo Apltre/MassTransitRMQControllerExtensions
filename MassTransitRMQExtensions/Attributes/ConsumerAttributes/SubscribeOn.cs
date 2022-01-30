@@ -10,9 +10,9 @@ namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
     {
         public SubscribeOn(string exchange, ExchangeType topologyType, string route = "#")
         {
-            Exchange = exchange;
-            TopologyType = topologyType;
-            Route = route;
+            this.Exchange = exchange;
+            this.TopologyType = topologyType;
+            this.Route = route;
         }
 
         public string Exchange { get; }
@@ -23,29 +23,29 @@ namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
 
         private bool routeEquals(SubscribeOn other)
         {
-            if (exchangeTypesWithoutRoutes.Contains(TopologyType))
+            if (this.exchangeTypesWithoutRoutes.Contains(TopologyType))
             {
                 return true;
             }
-            return Route == other.Route;
+            return this.Route == other.Route;
         }
 
         public bool Equals(SubscribeOn other)
         {
 
-            return Exchange == other.Exchange
-             && TopologyType == other.TopologyType
-             && routeEquals(other);
+            return this.Exchange == other.Exchange
+             && this.TopologyType == other.TopologyType
+             && this.routeEquals(other);
         }
 
         private int getRouteHash(string route)
         {
-            if (exchangeTypesWithoutRoutes.Contains(TopologyType) || Route is null)
+            if (this.exchangeTypesWithoutRoutes.Contains(TopologyType) || this.Route is null)
             {
                 return 0.GetHashCode();
             }
 
-            return Route.GetHashCode();
+            return this.Route.GetHashCode();
         }
 
         public override int GetHashCode()
