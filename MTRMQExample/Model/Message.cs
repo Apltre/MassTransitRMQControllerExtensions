@@ -3,6 +3,7 @@ using MassTransitRMQExtensions.Enums;
 
 namespace MassTransitRMQExtensions.Models
 { 
+    //attributes are mandatory for publish
     [PublishMessage(ExchangeType.Topic, "outerStatusesV4")]
     public class Message
     {

@@ -28,6 +28,7 @@ namespace MTRMQExample.Controllers
         [SubscribeTopicOn("outerStatuses", "101")]
         [SubscribeTopicOn("outerStatuses", "102")]
         [SubscribeOn("outerStatuses", ExchangeType.Topic, "#")]
+        //array message consume supported
         public Task<List<string>> Consume1(IEnumerable<JsonText> events)
         {
          
@@ -63,12 +64,19 @@ namespace MTRMQExample.Controllers
         public async Task<List<string>> ConsumeV2Route102(IEnumerable<JsonText> events)
         {
             //recommended extension for exchange publish
+            //array publish as message not supported
             await this.PublishEndpoint.PublishMessage(new Message
             {
                 Id = "asdfdf",
                 Text = "text"
-            }, "102");
+            }, "101");
             return new List<string>() { $"{nameof(ConsumeV2Route102)}_result" };
+        }
+
+        [SubscribeTopicOn("outerStatusesV4", "101")]
+        public async Task<string> ConsumeV4Route101(Message events)
+        {
+            return "result";
         }
 
         [RunJob("0/1 * * * * ?")]
