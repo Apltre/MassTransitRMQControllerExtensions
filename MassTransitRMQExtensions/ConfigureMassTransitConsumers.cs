@@ -46,6 +46,8 @@ namespace MassTransitRMQExtensions
             configurator.ReceiveEndpoint(endpoint.QueueName, configurator =>
             {
                 configurator.ConfigureConsumeTopology = false;
+                configurator.ConcurrentMessageLimit = endpoint.ConcurrentMessageLimit;
+                configurator.PrefetchCount = endpoint.PrefetchCount;
                 configurator.Bind(endpoint.ExchangeName,
                     bc =>
                     {
@@ -78,8 +80,8 @@ namespace MassTransitRMQExtensions
         }
         internal static void RegisterPublisher(this IRabbitMqBusFactoryConfigurator configurator, RabbitMessagePublisher publisher)
         {
-            InvokeLocalVoidGenericMethodByType(publisher.MesageType, nameof(RegisterPublisherMessage), new object[] { configurator, publisher.MessageExchange });
-            InvokeLocalVoidGenericMethodByType(publisher.MesageType, nameof(RegisterPublisherPublish), new object[] { configurator, publisher.MessageExchangeType, publisher.ResolveTopology });
+            InvokeLocalVoidGenericMethodByType(publisher.MessageType, nameof(RegisterPublisherMessage), new object[] { configurator, publisher.MessageExchange });
+            InvokeLocalVoidGenericMethodByType(publisher.MessageType, nameof(RegisterPublisherPublish), new object[] { configurator, publisher.MessageExchangeType, publisher.ResolveTopology });
         }
         public static void ConfigureMassTransit(this IServiceCollection services, RabbitMqConfig config,
             IEnumerable<RabbitEndpoint> endpoints, IEnumerable<RabbitMessagePublisher> messagePublishers)
@@ -172,7 +174,9 @@ namespace MassTransitRMQExtensions
                         TopicRoutingKey = attribute.Route,
                         ExchangeType = attribute.TopologyType,
                         ConsumerMessageType = method.GetParameters().Single().ParameterType,
-                        EventHandler = new ControllerHandlerInfo(method.DeclaringType, method)
+                        EventHandler = new ControllerHandlerInfo(method.DeclaringType, method),
+                        ConcurrentMessageLimit = attribute.ConcurrentMessageLimit,
+                        PrefetchCount = 16
                     };
                 }
             }
@@ -190,7 +194,9 @@ namespace MassTransitRMQExtensions
                     TopicRoutingKey = "",
                     ExchangeType = Enums.ExchangeType.Fanout,
                     ConsumerMessageType = typeof(JobMessage),
-                    EventHandler = new ControllerHandlerInfo(method.DeclaringType, method)
+                    EventHandler = new ControllerHandlerInfo(method.DeclaringType, method),
+                    ConcurrentMessageLimit = 1,
+                    PrefetchCount = 1
                 };
             }
         }
@@ -201,7 +207,7 @@ namespace MassTransitRMQExtensions
                 var attribute = publisher.GetCustomAttributes<PublishMessage>().Single();
                 yield return new RabbitMessagePublisher()
                 {
-                    MesageType = publisher,
+                    MessageType = publisher,
                     MessageExchangeType = attribute.ExchangeType,
                     ResolveTopology = attribute.ResolveTopology,
                     MessageExchange = attribute.ExchangeName

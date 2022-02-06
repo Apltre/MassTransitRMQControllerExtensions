@@ -30,8 +30,7 @@ namespace MTRMQExample.Controllers
         [SubscribeOn("outerStatuses", ExchangeType.Topic, "#")]
         //array message consume supported
         public Task<List<string>> Consume1(IEnumerable<JsonText> events)
-        {
-         
+        {      
             //return $"{nameof(Consume1)}_result";
             return Task.FromResult(new List<string>() { $"{nameof(Consume1)}_result" });
             //return Task.FromResult(new List<string>() { $"{nameof(Consume1)}_result" });
@@ -60,7 +59,9 @@ namespace MTRMQExample.Controllers
         {
             return Task.FromResult(new List<string>() { $"{nameof(ConsumeV2Route101)}_result" });
         }
-        [SubscribeTopicOn("outerStatusesV2", "102")]
+
+        //ConcurrentMessageLimit same parameter as in MT
+        [SubscribeTopicOn("outerStatusesV2", "102", 5)]
         public async Task<List<string>> ConsumeV2Route102(IEnumerable<JsonText> events)
         {
             //recommended extension for exchange publish

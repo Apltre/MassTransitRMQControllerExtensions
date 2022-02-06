@@ -8,16 +8,18 @@ namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class SubscribeOn : Attribute, IEquatable<SubscribeOn>
     {
-        public SubscribeOn(string exchange, ExchangeType topologyType, string route = "#")
+        public SubscribeOn(string exchange, ExchangeType topologyType, string route = "#", int concurrentMessageLimit = 1)
         {
             this.Exchange = exchange;
             this.TopologyType = topologyType;
             this.Route = route;
+            this.ConcurrentMessageLimit = concurrentMessageLimit;
         }
 
         public string Exchange { get; }
         public ExchangeType TopologyType { get; }
         public string Route { get; }
+        public int ConcurrentMessageLimit { get; }
 
         private IEnumerable<ExchangeType> exchangeTypesWithoutRoutes = new List<ExchangeType> { ExchangeType.Fanout };
 

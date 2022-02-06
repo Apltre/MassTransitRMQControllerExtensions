@@ -11,5 +11,7 @@ namespace MassTransitRMQExtensions.Models
         public Type ConsumerMessageType { get; set; }
         public ExchangeType ExchangeType { get; set; }
         public ControllerHandlerInfo EventHandler { get; set;}
+        public int ConcurrentMessageLimit { get; set; }
+        public int PrefetchCount { get; set; }
     }
 }
