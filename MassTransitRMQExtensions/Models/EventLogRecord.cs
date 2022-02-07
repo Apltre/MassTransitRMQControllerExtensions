@@ -28,14 +28,14 @@ namespace MassTransitRMQExtensions.Models
         public string Elapsed => (EndTime - StartTime).ToString("G", new CultureInfo("en-US"));
         public object Result { get; private set; }
         public object Event { get; }
-        public Exception Exception { get; private set; }
+        public string Exception { get; private set; }
 
         public void SetRecordEndState(DateTime endTime, bool isSuccessful = false, object result = null, Exception exception = null)
         {
             this.IsSuccessfull = isSuccessful;
             this.EndTime = endTime;
             this.Result = result;
-            this.Exception = exception;
+            this.Exception = exception?.ToString();
         }
 
         public override string ToString()
