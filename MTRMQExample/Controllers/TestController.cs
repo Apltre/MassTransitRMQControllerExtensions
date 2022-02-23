@@ -7,6 +7,7 @@ using MassTransitRMQExtensions.Models;
 using Microsoft.Extensions.Logging;
 using MTRMQExample.Model;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace MTRMQExample.Controllers
@@ -44,7 +45,7 @@ namespace MTRMQExample.Controllers
         [SubscribeOn("outerStatusesV3", ExchangeType.Direct, "#")]
         public Task<List<string>> Consume2(IEnumerable<JsonText> events)
         {
-            throw new System.Exception("Errr!!!");
+            throw new System.Exception($"Eror!!! First event batch Id: {events.FirstOrDefault()}");
             //return Task.FromResult(new List<string>() { $"{nameof(Consume2)}_result" });
         }
 
@@ -77,7 +78,7 @@ namespace MTRMQExample.Controllers
         [SubscribeTopicOn("outerStatusesV4", "101")]
         public async Task<string> ConsumeV4Route101(Message events)
         {
-            return "result";
+            return $"Result. Event Id: {events.Id}";
         }
 
         [RunJob("0/1 * * * * ?")]

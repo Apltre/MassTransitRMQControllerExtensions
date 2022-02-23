@@ -45,7 +45,8 @@ namespace MassTransitRMQExtensions.Models
                 {
                     Type = "Job emitter exception",
                     QueueLink = queue,
-                    Exception = ex.ToString()
+                    Exception = ex.ToString(),
+                    DateTime = DateTime.Now
                 }, this.SerializerOptions);
                 logger.LogInformation(json);
             }

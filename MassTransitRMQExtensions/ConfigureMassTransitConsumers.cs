@@ -86,7 +86,7 @@ namespace MassTransitRMQExtensions
         public static void ConfigureMassTransit(this IServiceCollection services, RabbitMqConfig config,
             IEnumerable<RabbitEndpoint> endpoints, IEnumerable<RabbitMessagePublisher> messagePublishers)
         {
-            if (!(endpoints is null) && endpoints.Any())
+            if (endpoints is not null && endpoints.Any())
             {
                 services.AddMassTransit(bus =>
                 {
@@ -192,7 +192,7 @@ namespace MassTransitRMQExtensions
                     ExchangeName = name,
                     QueueName = name,
                     TopicRoutingKey = "",
-                    ExchangeType = Enums.ExchangeType.Fanout,
+                    ExchangeType = ExchangeType.Fanout,
                     ConsumerMessageType = typeof(JobMessage),
                     EventHandler = new ControllerHandlerInfo(method.DeclaringType, method),
                     ConcurrentMessageLimit = 1,
@@ -250,7 +250,7 @@ namespace MassTransitRMQExtensions
         public static void ConfigureMassTransitControllers(this IServiceCollection services, RabbitMqConfig config, bool configureJobEmitters = true,
             Func<string, bool> controllerNameFilter = null, Func<string, string> queueNamingChanger = null)
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(asm => !asm.IsDynamic).ToArray();
             services.ConfigureMassTransitControllers(config, assemblies, configureJobEmitters, controllerNameFilter, queueNamingChanger);
         }
         public static async Task PublishMessage<T>(this IPublishEndpoint publishEndpoint, T message, string routingKey = null) where T : class

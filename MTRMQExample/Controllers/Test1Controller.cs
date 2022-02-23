@@ -7,14 +7,14 @@ namespace MTRMQExample.Controllers
 {
     public class Test1Controller
     {
-        public Test1Controller(ILogger<TestController> logger)
+        public Test1Controller(ILogger<Test1Controller> logger)
         {
             this.Logger = logger;
         }
 
-        public ILogger<TestController> Logger { get; }
+        public ILogger<Test1Controller> Logger { get; }
 
-        public Task Do(IEnumerable<JsonText> events)
+        public Task Do()
         {
             return Task.CompletedTask;
         }
