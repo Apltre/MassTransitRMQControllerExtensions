@@ -61,7 +61,7 @@ namespace MassTransitRMQExtensions.Models
             {
                 var serviceProvider = scope.ServiceProvider;
                 var controller = serviceProvider.GetRequiredService(this.HandlerInfo.ControllerType);
-                var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("RMQConsumer");
+                var logger = serviceProvider.GetRequiredService<ILogger<GenericEventConsumer<T>>>();
                 object result = null;
                 var @event = context.Message;
                 var logRecord = this.InitializeLogRecord(@event);

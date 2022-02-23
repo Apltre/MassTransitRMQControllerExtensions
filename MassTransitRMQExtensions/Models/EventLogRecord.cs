@@ -44,7 +44,7 @@ namespace MassTransitRMQExtensions.Models
             {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
-            return JsonSerializer.Serialize(this, options);
+            return JsonSerializer.Serialize<EventLogRecord>(this, options);
         }
     }
 }
