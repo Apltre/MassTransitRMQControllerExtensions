@@ -22,7 +22,7 @@ namespace MassTransitRMQExtensions.Models
 
         protected static bool IsAsync(MethodInfo method)
         {
-            return !(method.ReturnType.GetMethod("GetAwaiter") is null);
+            return method.ReturnType.GetMethod("GetAwaiter") is not null;
         }
 
         protected static bool IsVoid(MethodInfo method)
@@ -57,50 +57,48 @@ namespace MassTransitRMQExtensions.Models
 
         public async Task Consume(ConsumeContext<T> context)
         {
-            using (var scope = this.ServiceProvider.CreateScope())
-            {
-                var serviceProvider = scope.ServiceProvider;
-                var controller = serviceProvider.GetRequiredService(this.HandlerInfo.ControllerType);
-                var logger = serviceProvider.GetRequiredService<ILogger<GenericEventConsumer<T>>>();
-                object result = null;
-                var @event = context.Message;
-                var logRecord = this.InitializeLogRecord(@event);
+            using var scope = this.ServiceProvider.CreateScope();
+            var serviceProvider = scope.ServiceProvider;
+            var controller = serviceProvider.GetRequiredService(this.HandlerInfo.ControllerType);
+            var logger = serviceProvider.GetRequiredService<ILogger<GenericEventConsumer<T>>>();
+            object result = null;
+            var @event = context.Message;
+            var logRecord = this.InitializeLogRecord(@event);
 
-                try
+            try
+            {
+                if (IsAsync(this.HandlerInfo.Method))
                 {
-                    if (IsAsync(this.HandlerInfo.Method))
+                    if (!IsSimpleTask(this.HandlerInfo.Method))
                     {
-                        if (!IsSimpleTask(this.HandlerInfo.Method))
-                        {
-                            dynamic awaitable = InvokeHandler(this.HandlerInfo, controller, @event);
-                            await awaitable;
-                            result = awaitable!.GetAwaiter().GetResult();
-                        }
-                        else
-                        {
-                            await (Task)InvokeHandler(this.HandlerInfo, controller, @event);
-                        }
+                        dynamic awaitable = InvokeHandler(this.HandlerInfo, controller, @event);
+                        await awaitable;
+                        result = awaitable!.GetAwaiter().GetResult();
                     }
                     else
                     {
-                        if (!IsVoid(this.HandlerInfo.Method))
-                        {
-                            result = InvokeHandler(this.HandlerInfo, controller, @event);
-                        }
-                        else
-                        {
-                            InvokeHandler(this.HandlerInfo, controller, @event);
-                        }
+                        await (Task)InvokeHandler(this.HandlerInfo, controller, @event);
                     }
-                    logRecord.SetRecordEndState(DateTime.Now, isSuccessful: true, result: result);
-                    logger.LogInformation(logRecord.ToString());
                 }
-                catch (Exception ex)
+                else
                 {
-                    logRecord.SetRecordEndState(DateTime.Now, exception: ex);
-                    logger.LogInformation(logRecord.ToString());
-                    throw;
+                    if (!IsVoid(this.HandlerInfo.Method))
+                    {
+                        result = InvokeHandler(this.HandlerInfo, controller, @event);
+                    }
+                    else
+                    {
+                        InvokeHandler(this.HandlerInfo, controller, @event);
+                    }
                 }
+                logRecord.SetRecordEndState(DateTime.Now, isSuccessful: true, result: result);
+                logger.LogInformation(logRecord.ToString());
+            }
+            catch (Exception ex)
+            {
+                logRecord.SetRecordEndState(DateTime.Now, exception: ex);
+                logger.LogInformation(logRecord.ToString());
+                throw;
             }
         }
     }

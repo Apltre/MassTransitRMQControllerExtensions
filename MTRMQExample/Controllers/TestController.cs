@@ -25,10 +25,10 @@ namespace MTRMQExample.Controllers
         public IPublishEndpoint PublishEndpoint { get; }
 
         
-        [SubscribeOn("outerStatuses", ExchangeType.Topic, "101")]
-        [SubscribeTopicOn("outerStatuses", "101")]
-        [SubscribeTopicOn("outerStatuses", "102")]
-        [SubscribeOn("outerStatuses", ExchangeType.Topic, "#")]
+        [SubscribeOn("exchange", ExchangeType.Topic, "101")]
+        [SubscribeTopicOn("exchange", "101")]
+        [SubscribeTopicOn("exchange", "102")]
+        [SubscribeOn("exchange", ExchangeType.Topic, "#")]
         //array message consume supported
         public Task<List<string>> Consume1(IEnumerable<JsonText> events)
         {      
@@ -40,45 +40,56 @@ namespace MTRMQExample.Controllers
             //return new object();
         }
         
-        [SubscribeOn("outerStatusesV3", ExchangeType.Direct, "101")]
-        [SubscribeDirectOn("outerStatusesV3", "102")]
-        [SubscribeOn("outerStatusesV3", ExchangeType.Direct, "#")]
+        [SubscribeOn("exchangeV3", ExchangeType.Direct, "101")]
+        [SubscribeDirectOn("exchangeV3", "102")]
+        [SubscribeOn("exchangeV3", ExchangeType.Direct, "#")]
         public Task<List<string>> Consume2(IEnumerable<JsonText> events)
         {
             throw new System.Exception($"Eror!!! First event batch Id: {events.FirstOrDefault()}");
             //return Task.FromResult(new List<string>() { $"{nameof(Consume2)}_result" });
         }
 
-        [SubscribeTopicOn("outerStatusesV2")]
+        [SubscribeTopicOn("exchangeV2")]
         public Task<List<string>> ConsumeV2RouteAll(IEnumerable<JsonText> events)
         {
             return Task.FromResult(new List<string>() { $"{nameof(ConsumeV2RouteAll)}_result" });
         }
-
-        [SubscribeTopicOn("outerStatusesV2", "101")]
+        //ConcurrentMessageLimit same parameter as in MT
+        [SubscribeTopicOn("exchangeV2", "101", 5)]
         public Task<List<string>> ConsumeV2Route101(IEnumerable<JsonText> events)
         {
             return Task.FromResult(new List<string>() { $"{nameof(ConsumeV2Route101)}_result" });
         }
 
-        //ConcurrentMessageLimit same parameter as in MT
-        [SubscribeTopicOn("outerStatusesV2", "102", 5)]
-        public async Task<List<string>> ConsumeV2Route102(IEnumerable<JsonText> events)
+        [SubscribeTopicOn("exchangeV4", "101")]
+        public async Task<string> ConsumeV4Route101(Message events)
+        {
+            return await Task.FromResult("result");
+        }
+
+        [RunJob("0/30 * * * * ?")]
+        public async Task EventPublishExample()
         {
             //recommended extension for exchange publish
-            //array publish as message not supported
+            //single event publish example
             await this.PublishEndpoint.PublishMessage(new Message
             {
                 Id = "asdfdf",
                 Text = "text"
             }, "101");
-            return new List<string>() { $"{nameof(ConsumeV2Route102)}_result" };
         }
 
-        [SubscribeTopicOn("outerStatusesV4", "101")]
-        public async Task<string> ConsumeV4Route101(Message events)
+        [RunJob("0/30 * * * * ?")]
+        public async Task EventsArrayPublishExample()
         {
-            return $"Result. Event Id: {events.Id}";
+            //events array publish example
+            await this.PublishEndpoint.PublishMessage(new ListMessage
+            {
+                new UserMessage {
+                Id = 987,
+                Name = "SomeName"
+                }
+            }, "101");
         }
 
         [RunJob("0/1 * * * * ?")]

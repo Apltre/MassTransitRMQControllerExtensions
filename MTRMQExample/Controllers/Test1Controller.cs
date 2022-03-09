@@ -14,7 +14,7 @@ namespace MTRMQExample.Controllers
 
         public ILogger<Test1Controller> Logger { get; }
 
-        public Task Do()
+        public Task Do(IEnumerable<JsonText> events)
         {
             return Task.CompletedTask;
         }
