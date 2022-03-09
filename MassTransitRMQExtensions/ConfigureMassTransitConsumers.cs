@@ -14,6 +14,7 @@ using MassTransitRMQExtensions.Attributes.ConsumerAttributes;
 using System.Threading.Tasks;
 using MassTransitRMQExtensions.Attributes.PublishAttributes;
 using MassTransitRMQExtensions.Enums;
+using System.Globalization;
 
 namespace MassTransitRMQExtensions
 {
@@ -73,10 +74,10 @@ namespace MassTransitRMQExtensions
         internal static void RegisterPublisherPublish<T>(IRabbitMqBusFactoryConfigurator configurator, ExchangeType exchangeType, bool resolveTopology = true) where T : class
         {
             configurator.Publish<T>(c =>
-                {
-                    c.ExchangeType = exchangeType.ToString().ToLower();
-                    c.Exclude = !resolveTopology;
-                });
+            {
+                c.ExchangeType = exchangeType.ToString().ToLower();
+                c.Exclude = !resolveTopology;
+            });
         }
         internal static void RegisterPublisher(this IRabbitMqBusFactoryConfigurator configurator, RabbitMessagePublisher publisher)
         {
@@ -146,38 +147,62 @@ namespace MassTransitRMQExtensions
                 && controllerNameFilter(controllerName)
                 && !controllerType.IsGenericType;
         }
+        internal static string GetQueueNameForMethodWithMultipleAttributes(string queueName, SubscribeOn attribute)
+        {
+            var titleCaseExchange = new CultureInfo("en-US").TextInfo.ToTitleCase(attribute.Exchange);
+            queueName = $"{queueName}_Exchange{titleCaseExchange}";
+            if (attribute.TopologyType != ExchangeType.Fanout)
+            {
+                queueName = $"{queueName}_Route";
+
+                var route = attribute.Route;
+
+                switch (attribute.TopologyType)
+                {
+                    case ExchangeType.Direct:
+                        route = route.Replace("#", "Sharp");
+                        break;
+                    case ExchangeType.Topic:
+                        route = route.Replace("#", "All");
+                        break;
+                    default:
+                        break;
+                }
+                queueName = $"{queueName}{route}";
+            }
+            return queueName;
+        }
         internal static IEnumerable<RabbitEndpoint> GetEventConsumersConfigurations(IEnumerable<Type> controllers, Func<string, string> queueNamingChanger)
         {
             var methodsToBind = controllers.SelectMany(t => t.GetMethods()).Where(m => m.CheckMethodHasAttribute<SubscribeOn>()).ToList();
             foreach (var method in methodsToBind)
             {
-                var attributes = method.GetCustomAttributes<SubscribeOn>().Distinct();
+                var methodAttributes = method.GetCustomAttributes<SubscribeOn>().Distinct();
+                var attributeGroups = methodAttributes.GroupBy(a => a.Exchange);
 
-                if (attributes.Select(a => a.Exchange).Distinct().Count() > 1)
+                foreach (var attributeGroup in attributeGroups)
                 {
-                    throw new Exception($"Method {method.Name} has multiple exchange declarations.");
-                }
-
-                if (attributes.Select(a => a.TopologyType).Distinct().Count() > 1)
-                {
-                    throw new Exception($"Method {method.Name} has multiple exchange type declarations for exchange {attributes.First().Exchange}.");
-                }
-
-                foreach (var attribute in attributes)
-                {
-                    var name = method.GetQueueName();
-                    var queueName = attributes.Count() == 1 ? name : $"{name}_Route{attribute.Route.Replace("#", "All")}";
-                    yield return new RabbitEndpoint()
+                    if (attributeGroup.Select(a => a.TopologyType).Distinct().Count() > 1)
                     {
-                        ExchangeName = attribute.Exchange,
-                        QueueName = queueNamingChanger(queueName),
-                        TopicRoutingKey = attribute.Route,
-                        ExchangeType = attribute.TopologyType,
-                        ConsumerMessageType = method.GetParameters().Single().ParameterType,
-                        EventHandler = new ControllerHandlerInfo(method.DeclaringType, method),
-                        ConcurrentMessageLimit = attribute.ConcurrentMessageLimit,
-                        PrefetchCount = 16
-                    };
+                        throw new Exception($"Method {method.Name} has multiple exchange type declarations for exchange {attributeGroup.First().Exchange}.");
+                    }
+
+                    foreach (var attribute in attributeGroup)
+                    {
+                        var name = method.GetQueueName();
+                        var queueName = methodAttributes.Count() == 1 ? name : GetQueueNameForMethodWithMultipleAttributes(name, attribute);
+                        yield return new RabbitEndpoint()
+                        {
+                            ExchangeName = attribute.Exchange,
+                            QueueName = queueNamingChanger(queueName),
+                            TopicRoutingKey = attribute.Route,
+                            ExchangeType = attribute.TopologyType,
+                            ConsumerMessageType = method.GetParameters().Single().ParameterType,
+                            EventHandler = new ControllerHandlerInfo(method.DeclaringType, method),
+                            ConcurrentMessageLimit = attribute.ConcurrentMessageLimit,
+                            PrefetchCount = 16
+                        };
+                    }
                 }
             }
         }
@@ -223,11 +248,11 @@ namespace MassTransitRMQExtensions
             }
             var endpoints = new List<RabbitEndpoint>();
 
-            var consumerConfigurations = GetEventConsumersConfigurations(controllers, queueNamingChanger);
+            var consumerConfigurations = GetEventConsumersConfigurations(controllers, queueNamingChanger).ToList();
             services.RegisterTypesInDI(consumerConfigurations.Select(c => c.EventHandler).Select(m => m.ControllerType).Distinct());
             endpoints.AddRange(consumerConfigurations);
 
-            var jobConfigurations = GetJobConfigurations(controllers, queueNamingChanger);
+            var jobConfigurations = GetJobConfigurations(controllers, queueNamingChanger).ToList();
             services.RegisterTypesInDI(jobConfigurations.Select(c => c.EventHandler).Select(m => m.ControllerType).Distinct());
             endpoints.AddRange(jobConfigurations);
 
@@ -261,7 +286,7 @@ namespace MassTransitRMQExtensions
             {
                 throw new Exception($"Publising message of type {messageType.Name} doesn't have routing attribute.");
             }
-            await publishEndpoint.Publish(message, context => context.SetRoutingKey(routingKey) );
+            await publishEndpoint.Publish(message, context => context.SetRoutingKey(routingKey));
         }
     }
 }
