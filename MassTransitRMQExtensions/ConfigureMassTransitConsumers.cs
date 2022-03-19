@@ -34,8 +34,14 @@ namespace MassTransitRMQExtensions
         internal static void ConfigureEventConsumer(this IRabbitMqReceiveEndpointConfigurator receiveEndpointConfigurator, IBusRegistrationContext context, RabbitEndpoint endpoint)
         {
             var consumerMessageType = endpoint.ConsumerMessageType;
+            var isIEnumerable = typeof(IEnumerable).IsAssignableFrom(endpoint.ConsumerMessageType);
 
-            if (typeof(IEnumerable).IsAssignableFrom(endpoint.ConsumerMessageType) && !consumerMessageType.IsArray)
+            if (!consumerMessageType.IsGenericType && isIEnumerable)
+            {
+                throw new Exception("For an array batched events use types IEnumerable<T>, T[], List<T>!");
+            }
+
+            if (isIEnumerable && !consumerMessageType.IsArray)
             {
                 consumerMessageType = consumerMessageType.GenericTypeArguments.Single().MakeArrayType();
             }
@@ -87,42 +93,39 @@ namespace MassTransitRMQExtensions
         public static void ConfigureMassTransit(this IServiceCollection services, RabbitMqConfig config,
             IEnumerable<RabbitEndpoint> endpoints, IEnumerable<RabbitMessagePublisher> messagePublishers)
         {
-            if (endpoints is not null && endpoints.Any())
+            services.AddMassTransit(bus =>
             {
-                services.AddMassTransit(bus =>
+                bus.UsingRabbitMq((context, cfg) =>
                 {
-                    bus.UsingRabbitMq((context, cfg) =>
+                    cfg.ClearMessageDeserializers();
+                    cfg.UseRawJsonSerializer();
+
+                    cfg.Host(config.Host,
+                                hc =>
+                                {
+                                    hc.Username(config.UserName);
+                                    hc.Password(config.Password);
+                                });
+
+                    cfg.UseMessageRetry(r => r.Exponential(21,
+                                                                TimeSpan.FromMinutes(2),
+                                                                TimeSpan.FromMinutes(20),
+                                                                TimeSpan.FromMinutes(1))); //~ 6 hours
+
+                    foreach (var publish in messagePublishers)
                     {
-                        cfg.ClearMessageDeserializers();
-                        cfg.UseRawJsonSerializer();
+                        cfg.RegisterPublisher(publish);
+                    }
 
-                        cfg.Host(config.Host,
-                                 hc =>
-                                 {
-                                     hc.Username(config.UserName);
-                                     hc.Password(config.Password);
-                                 });
-
-                        cfg.UseMessageRetry(r => r.Exponential(21,
-                                                                  TimeSpan.FromMinutes(2),
-                                                                  TimeSpan.FromMinutes(20),
-                                                                  TimeSpan.FromMinutes(1))); //~ 6 hours
-
-                        foreach (var publish in messagePublishers)
-                        {
-                            cfg.RegisterPublisher(publish);
-                        }
-
-                        foreach (var endpoint in endpoints)
-                        {
-                            cfg.ConfigureRabbitReceiveEndpoint(context, endpoint);
-                        }
-                    });
-
+                    foreach (var endpoint in endpoints)
+                    {
+                        cfg.ConfigureRabbitReceiveEndpoint(context, endpoint);
+                    }
                 });
 
-                services.AddMassTransitHostedService();
-            }
+            });
+
+            services.AddMassTransitHostedService();
         }
         internal static void RegisterTypesInDI(this IServiceCollection services, IEnumerable<Type> unregisteredTypes)
         {
