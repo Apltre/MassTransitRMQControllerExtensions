@@ -4,6 +4,9 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
+using System.Collections.Generic;
+using System.Collections;
 
 namespace MassTransitRMQExtensions.Models
 {
@@ -55,6 +58,36 @@ namespace MassTransitRMQExtensions.Models
                 );
         }
 
+        protected static object CastToGenericList<L>(IEnumerable ie)
+        {
+            var list = new List<L>();
+            foreach (var item in ie)
+            {
+                list.Add((L)item);
+            }
+            return list;
+        }
+
+        protected static object CastToListByType(Type innerType, IEnumerable ie)
+        {
+            var methodType = typeof(GenericEventConsumer<T>)
+                .GetMethod(nameof(GenericEventConsumer<T>.CastToGenericList), BindingFlags.NonPublic | BindingFlags.Static);
+            var constructedMethod = methodType!.MakeGenericMethod(innerType);
+            return constructedMethod.Invoke(null, new object[] { ie });
+        }
+
+        protected static object EqualizeEventType(T input, Type outputType)
+        {
+            switch (outputType.GetGenericTypeDefinition())
+            {
+                case Type listType when listType == typeof(List<>):
+                    var innerType = outputType.GetGenericArguments().Single();
+                    return CastToListByType(innerType, (IEnumerable)input);
+                default:
+                    return input;
+            }
+        }
+
         public async Task Consume(ConsumeContext<T> context)
         {
             using var scope = this.ServiceProvider.CreateScope();
@@ -62,7 +95,7 @@ namespace MassTransitRMQExtensions.Models
             var controller = serviceProvider.GetRequiredService(this.HandlerInfo.ControllerType);
             var logger = serviceProvider.GetRequiredService<ILogger<GenericEventConsumer<T>>>();
             object result = null;
-            var @event = context.Message;
+            var @event = EqualizeEventType(context.Message, this.EndpointInfo.ConsumerMessageType);
             var logRecord = this.InitializeLogRecord(@event);
 
             try
