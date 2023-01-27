@@ -10,8 +10,8 @@ namespace MassTransitRMQExtensions.Models
 
         public ControllerHandlerInfo(Type controllerType, MethodInfo actionMethod)
         {
-            this.ControllerType = controllerType;
-            this.Method = actionMethod;
+            ControllerType = controllerType;
+            Method = actionMethod;
         }
     }
 }

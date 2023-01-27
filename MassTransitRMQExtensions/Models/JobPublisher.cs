@@ -13,8 +13,8 @@ namespace MassTransitRMQExtensions.Models
     {
         public JobPublisher(IServiceProvider serviceProvider)
         {
-            this.ServiceProvider = serviceProvider;
-            this.SerializerOptions = new JsonSerializerOptions
+            ServiceProvider = serviceProvider;
+            SerializerOptions = new JsonSerializerOptions
             {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
@@ -29,9 +29,9 @@ namespace MassTransitRMQExtensions.Models
             var cron = (string)context.JobDetail.JobDataMap["cron"];
 
             var cronExpr = new CronExpression(cron);
-            var ttl = (cronExpr.GetTimeAfter(DateTimeOffset.UtcNow).Value.ToLocalTime() - DateTime.Now) / 4;
+            var ttl = (cronExpr.GetTimeAfter(DateTimeOffset.UtcNow)!.Value.ToLocalTime() - DateTime.Now) / 4;
 
-            using var scope = this.ServiceProvider.CreateScope();
+            using var scope = ServiceProvider.CreateScope();
             var endpointProvider = scope.ServiceProvider.GetRequiredService<ISendEndpointProvider>();
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<JobPublisher>>();
             try
@@ -47,7 +47,7 @@ namespace MassTransitRMQExtensions.Models
                     QueueLink = queue,
                     Exception = ex.ToString(),
                     DateTime = DateTime.Now
-                }, this.SerializerOptions);
+                }, SerializerOptions);
                 logger.LogInformation(json);
             }
         }

@@ -2,8 +2,12 @@
 
 namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
 {
-    public class SubscribeTopicOn : SubscribeOn
+    public sealed class SubscribeTopicOn : SubscribeOn
     {
-        public SubscribeTopicOn(string exchange, string route = "#", int concurrentMessageLimit = 1) : base(exchange, ExchangeType.Topic, route, concurrentMessageLimit) { }
+        public SubscribeTopicOn(string? exchange, string route = "#", int concurrentMessageLimit = 1, string? retryPolicy = null)
+            : base(exchange, ExchangeType.Topic, route, concurrentMessageLimit, retryPolicy) { }
+
+        public SubscribeTopicOn(object? exchange, string route = "#", int concurrentMessageLimit = 1, string? retryPolicy = null)
+            : base(exchange, ExchangeType.Topic, route, concurrentMessageLimit, retryPolicy) { }
     }
 }

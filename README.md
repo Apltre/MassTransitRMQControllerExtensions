@@ -1,6 +1,7 @@
 # MassTransitRMQControllerExtensions
 This is a wrapper over a standard MT library that works with RMQ. It allows you to make message consumers in a more "controller way".
 This library uses attributes and some naming conventions to configure MT topology.
+Net Standard 2.1
 Main features:
 1) Repeatable jobs configured with cron schedule(RunJob attribute) This is based on Quartz periodic signal emitter with a consumer on it.
 2) Consumers configured with SubscribeOn attribute
