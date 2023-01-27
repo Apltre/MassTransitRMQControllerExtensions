@@ -12,6 +12,7 @@ Main features:
 7) Easy to start new RMQ consumer/publisher project.  
 8) Current retries are set for 6 hours(~20 minutes between tries)
 9) Classic MT error handling.
+10) Non standard RMQ DLX Retries feature with muliple retry policies.
 
 Tips:
 
