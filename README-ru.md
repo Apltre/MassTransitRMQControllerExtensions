@@ -10,7 +10,7 @@
 
 4. Interval(int retryCount, TimeSpan interval)
 
-5. Exponential(int retryLimit, TimeSpan minInterval, TimeSpan maxInterval, TimeSpan intervalDelta)  intervalDelta - параметр в котором указывается максимальное значение рандомной "погрешности" которая в идеале позволяет не допускать "одновременной" обработки ретраев. В дефолтных(inmemory) ретраях массранзита можно настраивать, для  "RMQ DLX"(поддерживается с версии 8.0.20220622.1)ретраев не настраивается(равен 0).
+5. Exponential(int retryLimit, TimeSpan minInterval, TimeSpan maxInterval, TimeSpan intervalDelta)  intervalDelta - параметр в котором указывается максимальное значение рандомной "погрешности" которая в идеале позволяет не допускать "одновременной" обработки ретраев. В дефолтных(inmemory) ретраях массранзита можно настраивать, для  "RMQ DLX" ретраев не настраивается(равен 0).
 
 6. Incremental(int retryLimit, TimeSpan initialInterval, TimeSpan intervalIncrement)
 
@@ -156,7 +156,7 @@
 
 ```json
 {
-    "IsSuccessful": false, //статус обработки //c с версии 3.1.20220617.1 исправлин нейминг с IsSuccessfull -> IsSuccessful 
+    "IsSuccessful": false, //статус обработки
     "MqTopologyType": "Fanout", // тип эксчейнджа на который подписан консьюмер
     "Exchange": "102", //эксчейндж на который подписан консьюмер
     "Route": "", //routing key эксчейнджа на который подписан консьюмер(актуально, например, для типа эксчейнджа Topic)
