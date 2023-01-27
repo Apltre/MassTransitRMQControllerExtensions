@@ -12,7 +12,7 @@ namespace MTRMQExample.Model
 
     //attributes are mandatory for publish
     //events array publish made by List inheritance
-    [PublishMessage(ExchangeType.Topic, "exchangeV5")]
+    [PublishMessage(ExchangeType.Topic, "outerStatusesV5")]
     public class ListMessage : List<UserMessage>
     {
 

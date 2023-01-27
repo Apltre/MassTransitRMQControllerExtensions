@@ -15,22 +15,22 @@ namespace MassTransitRMQExtensions.Models
 {
     internal class JobsHostedService : IHostedService
     {
-        public JobsHostedService(IServiceProvider serviceProvider, IEnumerable<Type> controllers, Func<string, string> queueNamingChanger = null)
+        public JobsHostedService(IServiceProvider serviceProvider, IEnumerable<Type> controllers, Func<string, string>? queueNamingChanger = null)
         {
-            this.ServiceProvider = serviceProvider;
-            this.Controllers = controllers;
+            ServiceProvider = serviceProvider;
+            Controllers = controllers;
             if (queueNamingChanger is null)
             {
                 queueNamingChanger = (n) => n;
             }
-            this.QueueNamingChanger = queueNamingChanger ;
+            QueueNamingChanger = queueNamingChanger ;
         }
         public IServiceProvider ServiceProvider { get; }
         public IEnumerable<Type> Controllers { get; }
         public Func<string, string> QueueNamingChanger { get; }
         public async Task StartAsync(CancellationToken cancellationToken)
         {   
-            var methodsToBind = this.Controllers.SelectMany(t => t.GetMethods()).Where(m => m.CheckMethodHasAttribute<RunJob>()).ToList();
+            var methodsToBind = Controllers.SelectMany(t => t.GetMethods()).Where(m => m.CheckMethodHasAttribute<RunJob>()).ToList();
 
             if (methodsToBind.Any())
             {
@@ -39,11 +39,11 @@ namespace MassTransitRMQExtensions.Models
                 await scheduler.Start();
                 foreach (var method in methodsToBind)
                 {
-                    var queueName = this.QueueNamingChanger(method.GetQueueName());
+                    var queueName = QueueNamingChanger(method.GetQueueName());
 
                     foreach (var attribute in method.GetCustomAttributes<RunJob>().Distinct())
                     {
-                        scheduler.JobFactory = new JobPublisherFactory(this.ServiceProvider);
+                        scheduler.JobFactory = new JobPublisherFactory(ServiceProvider);
                         var trigger = TriggerBuilder.Create().StartNow().WithCronSchedule(attribute.CronSchedule).Build();
                         var job = JobBuilder.Create(typeof(JobPublisher)).Build();
                         job.JobDataMap.Put("queue", queueName);

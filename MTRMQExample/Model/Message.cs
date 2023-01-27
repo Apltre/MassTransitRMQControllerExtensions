@@ -2,9 +2,9 @@
 using MassTransitRMQExtensions.Enums;
 
 namespace MassTransitRMQExtensions.Models
-{ 
+{
     //attributes are mandatory for publish
-    [PublishMessage(ExchangeType.Topic, "exchangeV4")]
+    [PublishMessage(ExchangeType.Topic, "outerStatusesV4")]
     public class Message
     {
         public  string Id { get; set; }

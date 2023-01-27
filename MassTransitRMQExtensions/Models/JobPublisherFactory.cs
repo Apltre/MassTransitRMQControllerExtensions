@@ -8,14 +8,14 @@ namespace MassTransitRMQExtensions.Models
     {
         public JobPublisherFactory(IServiceProvider serviceProvider)
         {
-            this.ServiceProvider = serviceProvider;
+            ServiceProvider = serviceProvider;
         }
 
         public IServiceProvider ServiceProvider { get; }
 
         public IJob NewJob(TriggerFiredBundle bundle, IScheduler scheduler)
         {
-            return new JobPublisher(this.ServiceProvider);
+            return new JobPublisher(ServiceProvider);
         }
 
         public void ReturnJob(IJob job)

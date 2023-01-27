@@ -2,8 +2,12 @@
 
 namespace MassTransitRMQExtensions.Attributes.ConsumerAttributes
 {
-    public class SubscribeBasicOn : SubscribeOn
+    public sealed class SubscribeBasicOn : SubscribeOn
     {
-        public SubscribeBasicOn(string exchange, int concurrentMessageLimit = 1) : base(exchange, ExchangeType.Fanout, "", concurrentMessageLimit) { }
+        public SubscribeBasicOn(string exchange, int concurrentMessageLimit = 1, string? retryPolicy = null) 
+            : base(exchange, ExchangeType.Fanout, null, concurrentMessageLimit, retryPolicy) { }
+
+        public SubscribeBasicOn(object exchange, int concurrentMessageLimit = 1, string? retryPolicy = null)
+            : base(exchange, ExchangeType.Fanout, null, concurrentMessageLimit, retryPolicy) { }
     }
 }

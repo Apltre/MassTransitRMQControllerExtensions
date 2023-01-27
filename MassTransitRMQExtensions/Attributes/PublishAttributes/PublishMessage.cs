@@ -3,14 +3,14 @@ using System;
 
 namespace MassTransitRMQExtensions.Attributes.PublishAttributes
 {
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class PublishMessage : Attribute
     {
         public PublishMessage(ExchangeType exchangeType, string exchangeName, bool resolveTopology = true)
         {
-            this.ExchangeType = exchangeType;
-            this.ExchangeName = exchangeName;
-            this.ResolveTopology = resolveTopology;
+            ExchangeType = exchangeType;
+            ExchangeName = exchangeName;
+            ResolveTopology = resolveTopology;
         }
 
         public ExchangeType ExchangeType { get; }
